@@ -12,7 +12,7 @@ class CloudTrailAPIRecordSource():
         self._client = boto3.client('cloudtrail')
 
     def load_from_api(self, from_date, to_date):
-        """Loads the last 10 hours of cloudtrail events from the API"""
+        """Loads cloudtrail events from the API"""
         client = boto3.client('cloudtrail')
         paginator = client.get_paginator('lookup_events')
         response_iterator = paginator.paginate(
