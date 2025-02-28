@@ -269,4 +269,7 @@ def filter_records(records,
     if not result:
         logging.warning(ALL_RECORDS_FILTERED)
 
+    # sorting the result makes it possible to compare with other results
+    result = sorted(result, key=lambda x: (x.raw_source['eventTime'],x.raw_source['eventID']))
+
     return result
