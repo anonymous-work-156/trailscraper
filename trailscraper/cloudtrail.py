@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import fnmatch
 
 import pytz
 from toolz import pipe
@@ -248,10 +249,15 @@ def _by_timeframe(from_date, to_date):
 
 
 def _by_role_arns(arns_to_filter_for):
-    if arns_to_filter_for is None:
-        arns_to_filter_for = []
+    if not arns_to_filter_for:
+        # all ARNs match because there is no filter
+        logging.debug("No ARN filter.")
+        return lambda _: True
 
-    return lambda record: (record.assumed_role_arn in arns_to_filter_for) or (len(arns_to_filter_for) == 0)
+    # certain ARNs will match, using the wildcards * ? and []
+    arns_to_filter_for = [re.compile(fnmatch.translate(x)) for x in arns_to_filter_for]
+    logging.debug("Filter to ARNs: %s" % str(arns_to_filter_for))
+    return lambda record: record.assumed_role_arn and any(x.match(record.assumed_role_arn) for x in arns_to_filter_for)
 
 
 def filter_records(records,
