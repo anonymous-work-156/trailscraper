@@ -13,7 +13,7 @@ def test_load_gzipped_files_in_timeframe_from_dir():
                             datetime.datetime(2017, 12, 12, tzinfo=pytz.utc))
     assert records == [
         Record("autoscaling.amazonaws.com", "DescribeLaunchConfigurations",
-               assumed_role_arn="arn:aws:iam::111111111111:role/someRole",
+               iam_entity_arn="arn:aws:iam::111111111111:role/someRole",
                # "2017-12-11T15:01:51Z"
                event_time=datetime.datetime(2017, 12, 11, 15, 1, 51, tzinfo=pytz.utc)),
         Record("sts.amazonaws.com", "AssumeRole",
@@ -28,7 +28,7 @@ def test_load_gzipped_files_including_those_that_were_delivered_only_an_hour_aft
                             datetime.datetime(2017, 12, 11, 14, 5, tzinfo=pytz.utc))
     assert records == [
         Record("autoscaling.amazonaws.com", "DescribeLaunchConfigurations",
-               assumed_role_arn="arn:aws:iam::111111111111:role/someRole",
+               iam_entity_arn="arn:aws:iam::111111111111:role/someRole",
                # "2017-12-11T15:01:51Z"
                event_time=datetime.datetime(2017, 12, 11, 15, 1, 51, tzinfo=pytz.utc)),
         Record("sts.amazonaws.com", "AssumeRole",

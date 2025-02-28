@@ -20,9 +20,9 @@ def test_should_know_about_equality():
            Record("sts.amazonaws.com", "AssumeRole",
                   resource_arns=["arn:aws:iam::111111111111:role/someRole"])
     assert Record("sts.amazonaws.com", "AssumeRole",
-                  assumed_role_arn="arn:aws:iam::111111111111:role/someRole") == \
+                  iam_entity_arn="arn:aws:iam::111111111111:role/someRole") == \
            Record("sts.amazonaws.com", "AssumeRole",
-                  assumed_role_arn="arn:aws:iam::111111111111:role/someRole")
+                  iam_entity_arn="arn:aws:iam::111111111111:role/someRole")
 
     assert Record("sts.amazonaws.com", "AssumeRole") != Record("sts.amazonaws.com", "AssumeRoles")
     assert Record("sts.amazonaws.com", "AssumeRole") != Record("ec2.amazonaws.com", "AssumeRole")
@@ -31,9 +31,9 @@ def test_should_know_about_equality():
                   resource_arns=["arn:aws:iam::111111111111:role/someRole"]) != \
            Record("sts.amazonaws.com", "AssumeRole", ["arn:aws:iam::222222222222:role/someRole"])
     assert Record("sts.amazonaws.com", "AssumeRole",
-                  assumed_role_arn="arn:aws:iam::111111111111:role/someRole") != \
+                  iam_entity_arn="arn:aws:iam::111111111111:role/someRole") != \
            Record("sts.amazonaws.com", "AssumeRole",
-                  assumed_role_arn="arn:aws:iam::111111111111:role/someOtherRole")
+                  iam_entity_arn="arn:aws:iam::111111111111:role/someOtherRole")
 
 
 def test_should_be_hashable():

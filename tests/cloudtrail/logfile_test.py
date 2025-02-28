@@ -46,7 +46,7 @@ def test_parse_records_from_gzipped_file():
 
     assert logfile.records() == [
         Record("autoscaling.amazonaws.com", "DescribeLaunchConfigurations",
-               assumed_role_arn="arn:aws:iam::111111111111:role/someRole",
+               iam_entity_arn="arn:aws:iam::111111111111:role/someRole",
                event_time=datetime.datetime(2017, 12, 11, 15, 1, 51, tzinfo=pytz.utc)),
         Record("sts.amazonaws.com", "AssumeRole",
                resource_arns=["arn:aws:iam::111111111111:role/someRole"],
