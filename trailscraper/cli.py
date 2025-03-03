@@ -93,10 +93,12 @@ def select(log_dir, filter_iam_entity_arn, use_cloudtrail_api, from_s, to_s):
 
     if use_cloudtrail_api:
         records = CloudTrailAPIRecordSource().load_from_api(from_date, to_date)
+        serial = True
     else:
         records = LocalDirectoryRecordSource(log_dir).load_from_dir(from_date, to_date)
+        serial = False
 
-    filtered_records = filter_records(records, filter_iam_entity_arn, from_date, to_date)
+    filtered_records = filter_records(records, serial, filter_iam_entity_arn, from_date, to_date)
 
     filtered_records_as_json = [record.raw_source for record in filtered_records]
 

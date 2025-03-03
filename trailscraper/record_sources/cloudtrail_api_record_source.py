@@ -21,4 +21,4 @@ class CloudTrailAPIRecordSource():
         )
         for response in response_iterator:
             for event in response['Events']:
-                yield _parse_record(json.loads(event['CloudTrailEvent']))
+                yield _parse_record(json.loads(event['CloudTrailEvent']))   # FIXME: needs to look like an object with records() method
