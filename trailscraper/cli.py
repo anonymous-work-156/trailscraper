@@ -75,17 +75,18 @@ def download(bucket, prefix, org_id, account_id, region, log_dir, from_s, to_s, 
 
 
 @click.command("select")
+@click.argument('filter-iam-entity-arn', nargs=-1)
 @click.option('--log-dir', default="~/.trailscraper/logs", type=click.Path(),
               help='Where to put logfiles')
-@click.option('--filter-iam-entity-arn', multiple=True,
-              help='find events from this role or user (can be used multiple times)')
 @click.option('--use-cloudtrail-api', is_flag=True, default=False,
               help='Pull Events from CloudtrailAPI instead of log-dir')
 @click.option('--from', 'from_s', default="1970-01-01", type=click.STRING,
               help='Start date, e.g. "2017-01-01" or "-1days"')
 @click.option('--to', 'to_s', default="now", type=click.STRING,
               help='End date, e.g. "2017-01-01" or "now"')
-def select(log_dir, filter_iam_entity_arn, use_cloudtrail_api, from_s, to_s):
+@click.option('--parallel', is_flag=True, default=False,
+              help='Process events with multiple subprocesses (ignored with --use-cloudtrail-api)')
+def select(log_dir, filter_iam_entity_arn, use_cloudtrail_api, from_s, to_s, parallel):
     """Finds all CloudTrail records matching the given filters and prints them."""
     log_dir = os.path.expanduser(log_dir)
     from_date = time_utils.parse_human_readable_time(from_s)
@@ -96,7 +97,7 @@ def select(log_dir, filter_iam_entity_arn, use_cloudtrail_api, from_s, to_s):
         serial = True
     else:
         records = LocalDirectoryRecordSource(log_dir).load_from_dir(from_date, to_date)
-        serial = False
+        serial = not parallel
 
     filtered_records = filter_records(records, serial, filter_iam_entity_arn, from_date, to_date)
 

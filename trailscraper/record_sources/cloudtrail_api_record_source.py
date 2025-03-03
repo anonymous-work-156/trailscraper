@@ -6,6 +6,16 @@ import boto3
 from trailscraper.cloudtrail import _parse_record
 
 
+
+class RecordsFromApi():
+    """Class to behave like a LogFile object when asked to yield records."""
+    def __init__(self, records):
+        self._records = records
+
+    def records(self):
+        return self._records
+
+
 class CloudTrailAPIRecordSource():
     """Class to represent CloudTrail records from the CloudTrail lookup_events API"""
     def __init__(self):
@@ -20,5 +30,7 @@ class CloudTrailAPIRecordSource():
             EndTime=to_date,
         )
         for response in response_iterator:
+            records = []
             for event in response['Events']:
-                yield _parse_record(json.loads(event['CloudTrailEvent']))   # FIXME: needs to look like an object with records() method
+                records.append(_parse_record(json.loads(event['CloudTrailEvent'])))
+            yield RecordsFromApi(records)

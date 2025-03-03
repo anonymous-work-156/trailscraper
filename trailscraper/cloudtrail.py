@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import fnmatch
+from multiprocessing import Pool
 
 import pytz
 from toolz import pipe
@@ -245,40 +246,21 @@ def parse_records(json_records):
     return [r for r in parsed_records if r is not None]
 
 
-#def _by_timeframe(from_date, to_date):
-#    return lambda record: bool(record.event_time is None or (from_date <= record.event_time <= to_date))
-
-
-#def _by_iam_arns(arns_to_filter_for):
-#    if not arns_to_filter_for:
-#        # all ARNs match because there is no filter
-#        logging.debug("No ARN filter.")
-#        return lambda _: True
-
-#    # specific IAM ARNs will be matched using the wildcards * ? and []
-#    arns_to_filter_for = [re.compile(fnmatch.translate(x)) for x in arns_to_filter_for]
-#    logging.debug("Filter to ARNs: %s" % str(arns_to_filter_for))
-#    return lambda record: bool(record.iam_entity_arn and any(x.match(record.iam_entity_arn) for x in arns_to_filter_for))
-
-
-def worker(pars):
+def _worker(pars):
     try:
         logfile,filter_iam_entity_arn,from_date,to_date = pars
         res = []
-        if filter_iam_entity_arn:
-            arns_to_filter_for = [re.compile(fnmatch.translate(x)) for x in filter_iam_entity_arn]
-            for r in logfile.records():
-                if not bool(r.event_time is None or (from_date <= r.event_time <= to_date)):
-                    continue
-                if not bool(r.iam_entity_arn and any(x.match(r.iam_entity_arn) for x in arns_to_filter_for)):
-                    continue
-                res.append(r)
-        else:
-            for r in logfile.records():   # not very interesting, we just open and return all records
-                res.append(r)
+        arns_to_filter_for = [re.compile(fnmatch.translate(x)) for x in filter_iam_entity_arn]
+        for r in logfile.records():
+            if not bool(r.event_time is None or (from_date <= r.event_time <= to_date)):
+                continue
+            if not bool(r.iam_entity_arn and any(x.match(r.iam_entity_arn) for x in arns_to_filter_for)):
+                continue
+            res.append(r)
         return res
     except Exception as err:
         logging.error(err, exc_info=True)
+
 
 def filter_records(records,
                    serial,
@@ -287,37 +269,18 @@ def filter_records(records,
                    to_date=datetime.datetime.now(tz=pytz.utc)):
     """Filter records so they match the given condition"""
 
-    from multiprocessing import Pool
-
-    #callback1 = _by_timeframe(from_date, to_date)
-    #callback2 = _by_iam_arns(filter_iam_entity_arn)
-#
-    #def worker(pars):
-    #    try:
-    #        logfile,filter_iam_entity_arn = pars
-    #        res = []
-    #        for r in logfile.records():
-    #            if callback1(r) and callback2(r):
-    #                res.append(r)
-    #        return res
-    #    except Exception as err:
-    #        logging.error(err, exc_info=True)
-
-    rec2 = ((x,filter_iam_entity_arn,from_date,to_date) for x in records)   # a generator object wrapping a generator object
+    # a generator object wrapping a generator object
+    wrapped_records = ((x,filter_iam_entity_arn,from_date,to_date) for x in records)
 
     result = []
     if serial:
-        for p in rec2:
-            result.extend(worker(p))
+        for p in wrapped_records:
+            result.extend(_worker(p))
     else:
-        with Pool(8) as p:
-            for x in p.imap_unordered(worker, rec2, 4):
+        with Pool(3*os.cpu_count()//4 + 1) as p:
+            for x in p.imap_unordered(_worker, wrapped_records, 4):   # batch 4 files at once to try and cut overhead
                 result.extend(x)
-            #result = [x for x in p.imap_unordered(worker, rec2, 10) if x]
 
-    #result = list(pipe(records,
-    #                   filterz(_by_timeframe(from_date, to_date)),
-    #                   filterz(_by_iam_arns(filter_iam_entity_arn))))
     if not result:
         logging.warning(ALL_RECORDS_FILTERED)
 
