@@ -89,6 +89,8 @@ def download(bucket, prefix, org_id, account_id, region, log_dir, from_s, to_s, 
 def select(log_dir, filter_iam_entity_arn, use_cloudtrail_api, from_s, to_s, parallel):
     """Finds all CloudTrail records matching the given filters and prints them."""
     log_dir = os.path.expanduser(log_dir)
+    if not(use_cloudtrail_api or os.path.exists(log_dir)):
+        raise ValueError("The path for cloudtrail logs does not exist and --use-cloudtrail-api was not specified.")
     from_date = time_utils.parse_human_readable_time(from_s)
     to_date = time_utils.parse_human_readable_time(to_s)
 

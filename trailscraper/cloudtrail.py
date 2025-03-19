@@ -223,7 +223,11 @@ def _iam_entity_arn(json_record):
             return user_identity['sessionContext']['sessionIssuer']['arn']    # IAM role
         if user_identity['type'] == 'IAMUser':                                # IAM user
             return user_identity['arn']
-    return None                                                               # maybe an AWS service role
+        if user_identity['type'] not in ('AWSService','AWSAccount','WebIdentityUser'):
+            logging.debug("Unclassified: %s" % str(user_identity))
+    else:
+        logging.debug("No user identity type: %s" % str(user_identity))
+    return None
 
 
 def _parse_record(json_record):
@@ -251,13 +255,15 @@ def _worker(pars):
         logfile,filter_iam_entity_arn,from_date,to_date = pars
         res = []
         arns_to_filter_for = [re.compile(fnmatch.translate(x)) for x in filter_iam_entity_arn]
+        cnt = 0
         for r in logfile.records():
+            cnt += 1
             if not bool(r.event_time is None or (from_date <= r.event_time <= to_date)):
                 continue
             if not bool(r.iam_entity_arn and any(x.match(r.iam_entity_arn) for x in arns_to_filter_for)):
                 continue
             res.append(r)
-        return res
+        return cnt,res
     except Exception as err:
         logging.error(err, exc_info=True)
 
@@ -272,15 +278,20 @@ def filter_records(records,
     # a generator object wrapping a generator object
     wrapped_records = ((x,filter_iam_entity_arn,from_date,to_date) for x in records)
 
+    total_cnt = 0
     result = []
     if serial:
         for p in wrapped_records:
-            result.extend(_worker(p))
+            cnt,res = _worker(p)
+            total_cnt += cnt
+            result.extend(res)
     else:
         with Pool(3*os.cpu_count()//4 + 1) as p:
-            for x in p.imap_unordered(_worker, wrapped_records, 4):   # batch 4 files at once to try and cut overhead
-                result.extend(x)
+            for cnt,res in p.imap_unordered(_worker, wrapped_records, 4):   # batch 4 files at once to try and cut overhead
+                total_cnt += cnt
+                result.extend(res)
 
+    logging.debug("total events processed: %s" % total_cnt)
     if not result:
         logging.warning(ALL_RECORDS_FILTERED)
 
